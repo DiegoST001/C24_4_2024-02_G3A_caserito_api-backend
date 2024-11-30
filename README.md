@@ -9,9 +9,10 @@
 5.  **Actualizar usuario** para cambiar información como email, teléfono y dirección. Recuerda que el token se invalida y necesitas obtener uno nuevo.
 6.  **Convertirse en empresa** si el usuario no tiene ese rol, usando el endpoint de `create`.
 7.  **Agregar un restaurante** proporcionando el nombre, ubicación y descripción.
-8.  Ver mi lista de restaurantes.
-9. Eliminar un restaurante
-10.  Editar informacion de mi restaurante
+8. Ver lista de restaurantes.
+9. Ver mi lista de restaurantes.
+10. Eliminar un restaurante
+11. Editar informacion de mi restaurante
 
 ## 1. Registrar usuario
 **Endpoint:**
@@ -155,7 +156,20 @@ GET: http://localhost:8080/caserito_api/restaurante/mis-restaurantes
 
 
 **-----------------------------------------------------------------------------**
-## 9. Editar informacion de mi restaurante
+
+## 9. Ver lista de restaurantes
+
+**Endpoint:**
+
+GET: http://localhost:8080/caserito_api/restaurante/all
+
+**Notas:**
+
+*Con este Endpoint vera la lista de los restaurantes*
+
+
+**-----------------------------------------------------------------------------**
+## 10. Editar informacion de mi restaurante
 
 **Endpoint:**
 
@@ -176,7 +190,7 @@ PUT: http://localhost:8080/caserito_api/restaurante/update/{id}
 *Solo ingresar los campos que se requiere cambiar*
 
 **-----------------------------------------------------------------------------**
-## 10. Eliminar un restaurante
+## 11. Eliminar un restaurante
 
 **Endpoint:**
 
