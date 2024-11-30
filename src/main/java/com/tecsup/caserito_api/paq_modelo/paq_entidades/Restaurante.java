@@ -41,6 +41,9 @@ public class Restaurante {
     @Column(nullable = true)
     private Double longitud;
 
+    @Column(nullable = true)
+    private String tipo;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "fk_usuario", nullable = false)
     private Usuario usuario;

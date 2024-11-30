@@ -8,7 +8,6 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
-
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
@@ -26,16 +25,16 @@ public class JwtUtils {
     @Value("${jwt.expirationMs}")
     private int jwtExpirationMs;
 
+
     //GENERADOR DE TOKEN
     public String createToken(Authentication authentication, Long userId) {
         Algorithm algorithm = Algorithm.HMAC256(this.privateKey);
 
         String username = authentication.getPrincipal().toString();
-
         String roles = authentication.getAuthorities()
                 .stream()
                 .map(grantedAuthority -> grantedAuthority.getAuthority().replace("ROLE_", "")) // Elimina el prefijo ROLE_
-                .collect(Collectors.joining(",")); // Unir roles con una coma
+                .collect(Collectors.joining(",")); // Unir roles con coma
 
         String jwtToken = JWT.create()
                 .withIssuer(this.userGenerator)
@@ -47,23 +46,36 @@ public class JwtUtils {
                 .withJWTId(UUID.randomUUID().toString())
                 .withNotBefore(new Date(System.currentTimeMillis()))
                 .sign(algorithm);
+
         return jwtToken;
     }
+
 
     //DESINCRIPTAR TOKEN
     public DecodedJWT validateToken(String token) {
         try {
+
             Algorithm algorithm = Algorithm.HMAC256(this.privateKey);
 
             JWTVerifier verifier = JWT.require(algorithm)
                     .withIssuer(this.userGenerator)
                     .build();
+
+            // Verifica el token
             DecodedJWT decodedJWT = verifier.verify(token);
+
+            // Verifica si el token está expirado
+            if (decodedJWT.getExpiresAt().before(new Date())) {
+                throw new JWTVerificationException("Token has expired");
+            }
+
             return decodedJWT;
         } catch (JWTVerificationException exception) {
-            throw new JWTVerificationException("Token invalid, not Authorized");
+            throw new JWTVerificationException("Token invalid, not Authorized: " + exception.getMessage());
         }
     }
+
+
 
     public String extractUsername(DecodedJWT decodedJWT){
         return decodedJWT.getSubject();
@@ -84,4 +96,5 @@ public class JwtUtils {
     public Map<String, Claim> retrieveAllClaims(DecodedJWT decodedJWT) {
         return decodedJWT.getClaims();
     }
+
 }

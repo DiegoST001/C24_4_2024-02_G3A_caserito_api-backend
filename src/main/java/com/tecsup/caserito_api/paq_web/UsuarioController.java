@@ -11,11 +11,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-
-
 @RestController
 @RequestMapping("/caserito_api/user")
 public class UsuarioController {
+
     @Autowired
     private UsuarioService usuarioService;
 
@@ -25,29 +24,38 @@ public class UsuarioController {
     @Autowired
     private UserDetailServiceImpl userDetailService;
 
+    // Método auxiliar para crear una respuesta de error
+    private ResponseEntity<AuthResponse> buildErrorResponse(String message, HttpStatus status) {
+        return new ResponseEntity<>(new AuthResponse(
+                null,
+                message,
+                null,
+                null,
+                false
+        ), status);
+    }
+
     @PostMapping("/update-user")
-    public ResponseEntity<AuthResponse> updateUser(@Validated @RequestBody UpdateUserRequest updateUserRequest) {
+    public ResponseEntity<AuthResponse> updateUser(
+            @Validated @RequestBody UpdateUserRequest updateUserRequest) {
         try {
+            // Validar que la dirección no está vacía antes de llamar al servicio
+            if (updateUserRequest.direccion() != null && updateUserRequest.direccion().isEmpty()) {
+                throw new IllegalArgumentException("La dirección no puede estar vacía.");
+            }
+
+            // Llamar al método de servicio pasando el token
             AuthResponse authResponse = userDetailService.updateUserDate(updateUserRequest);
 
             return new ResponseEntity<>(authResponse, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return buildErrorResponse("Error en los datos proporcionados: " + e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            // Excepción de geocodificación o error similar
+            return buildErrorResponse("Error en la geocodificación: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception ex) {
-            return new ResponseEntity<>(new AuthResponse(
-                    null,
-                    "Error inesperado: " + ex.getMessage(),
-                    null,
-                    null,
-                    false
-            ), HttpStatus.INTERNAL_SERVER_ERROR);
+            return buildErrorResponse("Error inesperado: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
-
-
-
-
-
-
 
 }

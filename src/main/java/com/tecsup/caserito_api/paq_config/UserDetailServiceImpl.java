@@ -4,6 +4,7 @@ import com.tecsup.caserito_api.paq_modelo.paq_daos.UsuarioRepository;
 import com.tecsup.caserito_api.paq_modelo.paq_entidades.Rol;
 import com.tecsup.caserito_api.paq_modelo.paq_entidades.RolEnum;
 import com.tecsup.caserito_api.paq_modelo.paq_entidades.Usuario;
+import com.tecsup.caserito_api.paq_modelo.paq_servicios.GeocodingService;
 import com.tecsup.caserito_api.paq_util.JwtUtils;
 import com.tecsup.caserito_api.paq_web.paq_dto.AuthCreateUserRequest;
 import com.tecsup.caserito_api.paq_web.paq_dto.AuthLoginRequest;
@@ -14,7 +15,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -40,8 +40,10 @@ public class UserDetailServiceImpl implements UserDetailsService {
     private JwtUtils jwtUtils;
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private GeocodingService geocodingService;
 
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -122,7 +124,7 @@ public class UserDetailServiceImpl implements UserDetailsService {
         // Verifica si el usuario o correo ya existen
         if (existsByUsernameOrEmail(authCreateUserRequest.username(), authCreateUserRequest.email())) {
             return new AuthResponse(
-                    null,                             // username
+                    null, // username
                     "El usuario o correo ya existen",
                     null,
                     null,
@@ -136,6 +138,23 @@ public class UserDetailServiceImpl implements UserDetailsService {
         String email = authCreateUserRequest.email();
         String telefono = authCreateUserRequest.telefono();
         String direccion = authCreateUserRequest.direccion();
+
+        // Inicialización de coordenadas
+        double latitud = 0.0;
+        double longitud = 0.0;
+        String geolocalizationErrorMessage = null;
+
+        // Convierte la dirección a latitud y longitud
+        if (direccion != null && !direccion.isEmpty()) {
+            try {
+                double[] coordinates = geocodingService.getCoordinates(direccion);
+                latitud = coordinates[0];
+                longitud = coordinates[1];
+            } catch (Exception e) {
+                // Si ocurre un error, se guarda el mensaje de error pero no se detiene la creación del usuario
+                geolocalizationErrorMessage = "Hubo problemas con la ubicación.";
+            }
+        }
 
         Rol rolUser = Rol.builder()
                 .roleEnum(RolEnum.USER)
@@ -153,11 +172,14 @@ public class UserDetailServiceImpl implements UserDetailsService {
                 .email(email)
                 .telefono(telefono)
                 .direccion(direccion)
+                .latitud(latitud)
+                .longitud(longitud)
                 .roles(roles)
                 .fecha_creacion(LocalDateTime.now())
                 .fecha_modificacion(LocalDateTime.now())
                 .build();
 
+        // Guardar el usuario
         Usuario userCreated = usuarioRepository.save(usuario);
 
         Long userId = userCreated.getPk_Usuario();
@@ -172,9 +194,15 @@ public class UserDetailServiceImpl implements UserDetailsService {
                 .map(role -> role.getRoleEnum().name())
                 .collect(Collectors.toList());
 
+        // Si hubo un error en la geolocalización, se agrega al mensaje
+        String finalMessage = "Usuario creado.";
+        if (geolocalizationErrorMessage != null) {
+            finalMessage += " Sin embargo, " + geolocalizationErrorMessage;
+        }
+
         return new AuthResponse(
                 userCreated.getUsuario(),
-                "user created",
+                finalMessage,
                 accessToken,
                 rolesList,
                 true
@@ -182,10 +210,12 @@ public class UserDetailServiceImpl implements UserDetailsService {
     }
 
 
+
+
     public AuthResponse updateUserDate(UpdateUserRequest updateUserRequest) {
         // Obtener el usuario autenticado
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();  // Obtener el nombre de usuario desde el contexto de seguridad
+        String username = authentication.getName(); // Obtener el nombre de usuario desde el contexto de seguridad
 
         // Buscar el usuario en la base de datos
         Usuario usuario = usuarioRepository.findByUsuario(username)
@@ -195,15 +225,48 @@ public class UserDetailServiceImpl implements UserDetailsService {
         if (updateUserRequest.username() != null) {
             usuario.setUsuario(updateUserRequest.username());
         }
-        if (updateUserRequest.email() != null) {  // Acceder directamente a las propiedades del record
+        if (updateUserRequest.email() != null) {
             usuario.setEmail(updateUserRequest.email());
         }
-
         if (updateUserRequest.telefono() != null) {
             usuario.setTelefono(updateUserRequest.telefono());
         }
-        if (updateUserRequest.direccion() != null) {
-            usuario.setDireccion(updateUserRequest.direccion());
+        if (updateUserRequest.direccion() != null && !updateUserRequest.direccion().isEmpty()) {
+            usuario.setDireccion(updateUserRequest.direccion()); // Actualizamos la dirección
+
+            // Convierte la dirección a latitud y longitud
+            double latitud = 0.0;
+            double longitud = 0.0;
+
+            try {
+                // Intentamos obtener las coordenadas a partir de la dirección
+                double[] coordinates = geocodingService.getCoordinates(updateUserRequest.direccion());
+                latitud = coordinates[0];
+                longitud = coordinates[1];
+
+                // Actualizamos las coordenadas del usuario
+                usuario.setLatitud(latitud);
+                usuario.setLongitud(longitud);
+            } catch (Exception e) {
+                // En caso de error al obtener las coordenadas, lanzamos una excepción con el mensaje adecuado
+                throw new RuntimeException("No se pudo obtener las coordenadas para la dirección proporcionada.");
+            }
+        }
+
+        // Si se proporcionan latitud y longitud, convertimos a dirección
+        if (updateUserRequest.latitud() != null && updateUserRequest.longitud() != null) {
+            try {
+                // Convertimos las coordenadas en dirección
+                String direccion = geocodingService.getAddress(updateUserRequest.latitud(), updateUserRequest.longitud());
+                usuario.setDireccion(direccion);  // Actualizamos la dirección con la nueva dirección obtenida
+            } catch (Exception e) {
+                // En caso de error al convertir las coordenadas en dirección
+                throw new RuntimeException("No se pudo obtener la dirección a partir de las coordenadas proporcionadas.");
+            }
+
+            // Actualizamos las coordenadas del usuario
+            usuario.setLatitud(updateUserRequest.latitud());
+            usuario.setLongitud(updateUserRequest.longitud());
         }
 
         // Si se proporciona una nueva contraseña, se debe encriptar antes de actualizarla
@@ -234,8 +297,6 @@ public class UserDetailServiceImpl implements UserDetailsService {
             }
         }
 
-
-
         // Actualiza la fecha de modificación
         usuario.setFecha_modificacion(LocalDateTime.now());
 
@@ -264,6 +325,9 @@ public class UserDetailServiceImpl implements UserDetailsService {
                 true
         );
     }
+
+
+
 
 
 }

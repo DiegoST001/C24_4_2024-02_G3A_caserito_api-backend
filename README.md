@@ -79,7 +79,7 @@ GET http://localhost:8080/caserito_api/restaurante/prueba
 ## 4. Actualizar Usuario
 **Endpoint:**
 
-PUT http://localhost:8080/caserito_api/user/update-user
+POST http://localhost:8080/caserito_api/user/update-user
 
 *Cuerpo de la solicitud (JSON):*
 
@@ -135,7 +135,8 @@ POST http://localhost:8080/caserito_api/restaurante/create
 {
     "nombre": "Parada 22",
     "ubicacion": "Francisco de Orellana, Nueva Loja, Ecuador",
-    "descripcion": "Comida china 2"
+    "descripcion": "Comida china 2",
+    "tipo": "Postres"
 }
 
 ```
@@ -165,9 +166,7 @@ PUT: http://localhost:8080/caserito_api/restaurante/update/{id}
 ```
 
 {
-    "nombre": "Parada 22",
-    "ubicacion": "Francisco de Orellana, Nueva Loja, Ecuador",
-    "descripcion": "Comida china 2"
+    "nombre": "Parada 22"
 }
 
 ```
@@ -181,7 +180,7 @@ PUT: http://localhost:8080/caserito_api/restaurante/update/{id}
 
 **Endpoint:**
 
-DELETE:http://localhost:8080/caserito_api/restaurante/delete/3
+DELETE:http://localhost:8080/caserito_api/restaurante/delete/{id}
 
 *Posibles resultadhmos*
 

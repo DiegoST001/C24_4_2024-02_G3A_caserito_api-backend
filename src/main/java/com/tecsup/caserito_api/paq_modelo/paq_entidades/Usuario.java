@@ -50,8 +50,14 @@ public class Usuario {
     private boolean credentialsNonExpired;
 
     @Column(nullable = true)
-    @Size(max = 200)
+    @Size(max = 500)
     private String direccion;
+
+    @Column(nullable = true)
+    private Double latitud;
+
+    @Column(nullable = true)
+    private Double longitud;
 
     @Column(nullable = true)
     @Size(max = 15)

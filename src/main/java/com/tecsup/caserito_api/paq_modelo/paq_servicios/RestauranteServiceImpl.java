@@ -9,9 +9,8 @@ import com.tecsup.caserito_api.paq_modelo.paq_entidades.Usuario;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
 
 
 import java.util.List;
@@ -24,23 +23,16 @@ public class RestauranteServiceImpl implements RestauranteService {
     private RestauranteRepository restauranteRepository;
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
     private GeocodingService geocodingService;
 
-
+    @Autowired
+    private AuthService authService;
 
 
     @Override
     public Restaurante createRestaurante(Restaurante restaurante) {
-        // Obtener el usuario desde la autenticación
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName(); // El nombre de usuario es el 'principal'
 
-        // Obtener el usuario desde el repositorio usando el username
-        Usuario usuario = usuarioRepository.findByUsuario(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        Usuario usuario = authService.getAuthenticatedUser();
 
         // Verificar si ya existe un restaurante con el mismo nombre en general (no importa el usuario)
         Optional<Restaurante> existingRestaurante = restauranteRepository.findByNombre(restaurante.getNombre());
@@ -75,13 +67,7 @@ public class RestauranteServiceImpl implements RestauranteService {
     @Override
     public ResponseEntity<?> deleteRestaurante(Long id) {
         try {
-            // Obtener usuario autenticado automáticamente
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String username = authentication.getName(); // El nombre de usuario es el 'principal'
-
-            // Obtener el usuario desde el repositorio usando el username
-            Usuario usuario = usuarioRepository.findByUsuario(username)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            Usuario usuario = authService.getAuthenticatedUser();
 
             // Buscar el restaurante por ID
             Restaurante restaurante = restauranteRepository.findById(id)
@@ -115,38 +101,41 @@ public class RestauranteServiceImpl implements RestauranteService {
 
     @Override
     public List<Restaurante> getRestaurantesPorUsuario() {
-        // Obtener el usuario desde la autenticación
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName(); // El nombre de usuario es el 'principal'
-
-        // Obtener el usuario desde el repositorio usando el username
-        Usuario usuario = usuarioRepository.findByUsuario(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        // Obtener el usuario autenticado usando AuthService
+        Usuario usuario = authService.getAuthenticatedUser();
 
         // Retornar los restaurantes asociados al usuario autenticado
         return restauranteRepository.findByUsuario(usuario);
     }
 
+
     @Override
     public Restaurante updateRestaurante(Long id, Restaurante restauranteDetalles) {
+        // Obtener el usuario autenticado usando AuthService
+        Usuario usuario = authService.getAuthenticatedUser();
 
         // Buscar el restaurante por ID
         Restaurante restaurante = restauranteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Restaurante no encontrado"));
 
-        // Verificar si el nombre del restaurante ha cambiado
+        // Verificar si el restaurante pertenece al usuario autenticado
+        if (!restaurante.getUsuario().getPk_Usuario().equals(usuario.getPk_Usuario())) {
+            throw new RuntimeException("No tienes permiso para actualizar este restaurante.");
+        }
+
+        // Verificar y actualizar campos solo si son diferentes
         if (restauranteDetalles.getNombre() != null && !restauranteDetalles.getNombre().equals(restaurante.getNombre())) {
             // Verificar si ya existe un restaurante con el mismo nombre
-            Optional<Restaurante> existingRestaurante = restauranteRepository.findByNombre(restauranteDetalles.getNombre());
-            if (existingRestaurante.isPresent()) {
+            restauranteRepository.findByNombre(restauranteDetalles.getNombre()).ifPresent(existingRestaurante -> {
                 throw new RestauranteExistenteException("El restaurante con el nombre '" + restauranteDetalles.getNombre() + "' ya existe.");
-            }
-
-            // Si el nombre es diferente, actualizar el nombre del restaurante
+            });
             restaurante.setNombre(restauranteDetalles.getNombre());
         }
 
-        // Actualizar otros campos solo si son diferentes
+        if(restauranteDetalles.getTipo() != null && !restauranteDetalles.getTipo().equals(restaurante.getTipo())) {
+            restaurante.setTipo(restauranteDetalles.getTipo());
+        }
+
         if (restauranteDetalles.getDescripcion() != null && !restauranteDetalles.getDescripcion().equals(restaurante.getDescripcion())) {
             restaurante.setDescripcion(restauranteDetalles.getDescripcion());
         }
@@ -154,13 +143,13 @@ public class RestauranteServiceImpl implements RestauranteService {
         if (restauranteDetalles.getUbicacion() != null && !restauranteDetalles.getUbicacion().equals(restaurante.getUbicacion())) {
             restaurante.setUbicacion(restauranteDetalles.getUbicacion());
 
-            // Actualizar las coordenadas si la ubicación ha cambiado
+            // Actualizar coordenadas si la ubicación cambió
             double[] coordinates = geocodingService.getCoordinates(restauranteDetalles.getUbicacion());
             restaurante.setLatitud(coordinates[0]);
             restaurante.setLongitud(coordinates[1]);
         }
 
-        // Verificar si el menú o detalle deben actualizarse
+
         if (restauranteDetalles.getFk_menu() != null && !restauranteDetalles.getFk_menu().equals(restaurante.getFk_menu())) {
             restaurante.setFk_menu(restauranteDetalles.getFk_menu());
         }
@@ -172,6 +161,7 @@ public class RestauranteServiceImpl implements RestauranteService {
         // Guardar y retornar el restaurante actualizado
         return saveOrUpdateRestaurante(restaurante);
     }
+
 
 
 

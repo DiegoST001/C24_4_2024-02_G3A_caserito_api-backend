@@ -32,38 +32,52 @@ public class RestauranteController {
         return "Hola"; // Responde con un mensaje simple
     }
 
+    @PostMapping()
+    public List<Restaurante> listarRestaurantes(Double latitude, Double longitude
+    ){
+        return null;
+    }
 
     @GetMapping("/mis-restaurantes")
     public List<Restaurante> obtenerRestaurantesDelUsuario() {
         return restauranteService.getRestaurantesPorUsuario();
     }
 
+    @GetMapping("/all")
+    public List<Restaurante> obtenerRestaurantes() {return  restauranteService.getAllRestaurantes();}
 
     @PutMapping("/update/{id}")
     public ResponseEntity<?> actualizarRestaurante(@PathVariable Long id, @RequestBody Restaurante restauranteDetalles) {
         try {
             Restaurante updatedRestaurante = restauranteService.updateRestaurante(id, restauranteDetalles);
-            return new ResponseEntity<>(updatedRestaurante, HttpStatus.OK);
+            return ResponseEntity.ok(updatedRestaurante);
         } catch (RestauranteExistenteException e) {
-
-            ErrorResponse errorResponse = new ErrorResponse(e.getMessage());
-            return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+            // Manejar excepción de restaurante existente
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        } catch (RuntimeException e) {
+            // Manejar errores de permisos o datos faltantes
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(e.getMessage()));
         } catch (Exception e) {
-            // Manejar otras excepciones y devolver un mensaje de error general
-            ErrorResponse errorResponse = new ErrorResponse("Ocurrió un error al actualizar el restaurante: " + e.getMessage());
-            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+            // Manejar cualquier otro error inesperado
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Error inesperado: " + e.getMessage()));
         }
     }
 
-    @DeleteMapping("delete/{id}")
+
+    @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteRestaurante(@PathVariable Long id) {
         try {
-            // Llamar al servicio para eliminar el restaurante
-            return restauranteService.deleteRestaurante(id);
+            restauranteService.deleteRestaurante(id);
+            return ResponseEntity.ok().body(new ErrorResponse("Restaurante eliminado con éxito"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(e.getMessage()));
         } catch (Exception e) {
-            ErrorResponse errorResponse = new ErrorResponse(e.getMessage());
-            return ResponseEntity.status(400).body(errorResponse);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Error al eliminar restaurante: " + e.getMessage()));
         }
     }
+
+
 
 }

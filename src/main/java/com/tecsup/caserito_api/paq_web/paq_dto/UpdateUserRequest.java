@@ -1,4 +1,5 @@
 package com.tecsup.caserito_api.paq_web.paq_dto;
+
 import jakarta.validation.constraints.Pattern;
 
 public record UpdateUserRequest(
@@ -11,6 +12,7 @@ public record UpdateUserRequest(
         String email,
         String telefono,
         String direccion,
-        String rol
+        String rol,
+        Double latitud,
+        Double longitud
 ) {}
-

@@ -12,13 +12,17 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.authentication.BadCredentialsException;
 
+
 @RestController
 @RequestMapping("/caserito_api/authentication")
 public class AuthController {
     @Autowired
     private UserDetailServiceImpl userDetailService;
+
+
     @PostMapping("/sign-up")
     public ResponseEntity<AuthResponse> register(@RequestBody @Valid AuthCreateUserRequest authCreateUser, BindingResult bindingResult) {
+        // Verifica si hay errores de validación en los datos recibidos
         if (bindingResult.hasErrors()) {
             StringBuilder errorMessage = new StringBuilder("Errores de validación: ");
             bindingResult.getAllErrors().forEach(error ->
@@ -34,17 +38,18 @@ public class AuthController {
             ));
         }
 
-        // Verifica si el usuario o correo ya existen
+        // Llama al servicio para crear el usuario
         AuthResponse authResponse = this.userDetailService.createUser(authCreateUser);
 
-        // Si ya existe el usuario o correo, devuelve un error
+        // Si la creación del usuario falla, devolvemos la respuesta de error
         if (!authResponse.status()) {
             return ResponseEntity.badRequest().body(authResponse);
         }
 
-        // Si el usuario se crea correctamente, devuelve la respuesta con el JWT y detalles
-        return new ResponseEntity<>(authResponse, HttpStatus.CREATED);
+        // Si el usuario se crea correctamente, devolvemos la respuesta con el JWT y los detalles
+        return ResponseEntity.status(HttpStatus.CREATED).body(authResponse);
     }
+
 
     @PostMapping("/log-in")
     public ResponseEntity<AuthResponse> login(@RequestBody @Valid AuthLoginRequest userRequest) {
@@ -60,6 +65,7 @@ public class AuthController {
             return new ResponseEntity<>(new AuthResponse(null, "Error inesperado", null, null, false), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 
 
 }
