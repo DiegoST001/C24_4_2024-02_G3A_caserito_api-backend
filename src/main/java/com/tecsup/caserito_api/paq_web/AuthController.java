@@ -1,6 +1,7 @@
 package com.tecsup.caserito_api.paq_web;
 
 import com.tecsup.caserito_api.paq_config.UserDetailServiceImpl;
+import com.tecsup.caserito_api.paq_modelo.paq_servicios.UsuarioService;
 import com.tecsup.caserito_api.paq_web.paq_dto.AuthCreateUserRequest;
 import com.tecsup.caserito_api.paq_web.paq_dto.AuthLoginRequest;
 import com.tecsup.caserito_api.paq_web.paq_dto.AuthResponse;
@@ -19,6 +20,8 @@ public class AuthController {
     @Autowired
     private UserDetailServiceImpl userDetailService;
 
+    @Autowired
+    private UsuarioService usuarioService;
 
     @PostMapping("/sign-up")
     public ResponseEntity<AuthResponse> register(@RequestBody @Valid AuthCreateUserRequest authCreateUser, BindingResult bindingResult) {

@@ -11,8 +11,9 @@
 7.  **Agregar un restaurante** proporcionando el nombre, ubicación y descripción.
 8. Ver lista de restaurantes.
 9. Ver mi lista de restaurantes.
-10. Eliminar un restaurante
-11. Editar informacion de mi restaurante
+10. Eliminar un restaurante.
+11. Editar informacion de mi restaurante.
+12. Ver mis datos.
 
 ## 1. Registrar usuario
 **Endpoint:**
@@ -219,6 +220,10 @@ DELETE:http://localhost:8080/caserito_api/restaurante/delete/{id}
 
 ````
 **-----------------------------------------------------------------------------**
+## 12. Obtener mis datos
+
+**Endpoint:**
+GET: http://localhost:8080/caserito_api/user/me
 
 **-----------------------------------------------------------------------------**
 

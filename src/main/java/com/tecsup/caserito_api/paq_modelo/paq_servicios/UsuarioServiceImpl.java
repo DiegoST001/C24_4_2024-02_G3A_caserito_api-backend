@@ -4,6 +4,7 @@ import com.tecsup.caserito_api.paq_modelo.paq_daos.UsuarioRepository;
 import com.tecsup.caserito_api.paq_modelo.paq_entidades.Rol;
 import com.tecsup.caserito_api.paq_modelo.paq_entidades.RolEnum;
 import com.tecsup.caserito_api.paq_modelo.paq_entidades.Usuario;
+import com.tecsup.caserito_api.paq_web.paq_dto.UserResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,25 @@ public class UsuarioServiceImpl implements UsuarioService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private AuthService authService;
+
+    @Override
+    public UserResponse getAuthenticatedUser() {
+        // Obtener el usuario autenticado desde el servicio de autenticación
+        Usuario usuario = authService.getAuthenticatedUser();
+
+        // Crear y devolver el record UserResponse con los datos del usuario
+        return new UserResponse(
+                usuario.getUsuario(),
+                usuario.getEmail(),
+                usuario.getDireccion(),
+                usuario.getTelefono()
+        );
+    }
+
+
 
 
     @Override

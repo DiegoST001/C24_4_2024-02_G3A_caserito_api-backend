@@ -2,15 +2,16 @@ package com.tecsup.caserito_api.paq_web;
 
 import com.tecsup.caserito_api.paq_config.UserDetailServiceImpl;
 import com.tecsup.caserito_api.paq_modelo.paq_daos.UsuarioRepository;
+import com.tecsup.caserito_api.paq_modelo.paq_entidades.Usuario;
 import com.tecsup.caserito_api.paq_modelo.paq_servicios.UsuarioService;
 import com.tecsup.caserito_api.paq_web.paq_dto.AuthResponse;
 import com.tecsup.caserito_api.paq_web.paq_dto.UpdateUserRequest;
+import com.tecsup.caserito_api.paq_web.paq_dto.UserResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
 @RestController
 @RequestMapping("/caserito_api/user")
 public class UsuarioController {
@@ -34,6 +35,20 @@ public class UsuarioController {
                 false
         ), status);
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getAuthenticatedUser() {
+        try {
+            // Llama al servicio para obtener el usuario autenticado
+            UserResponse userResponse = usuarioService.getAuthenticatedUser();
+            return ResponseEntity.ok(userResponse);
+        } catch (Exception e) {
+            // Construye una respuesta de error adecuada
+            return buildErrorResponse("Error al obtener el usuario autenticado: " + e.getMessage(),
+                    HttpStatus.UNAUTHORIZED);
+        }
+    }
+
 
     @PostMapping("/update-user")
     public ResponseEntity<AuthResponse> updateUser(
